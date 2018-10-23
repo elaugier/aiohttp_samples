@@ -2,13 +2,17 @@
 from aiohttp import web
 import mimetypes
 import os
+import tempfile
 
 class sendfile():
     def __init__(self):
         pass
 
     async def get(self, request):
-        filename = os.path.abspath("test.csv")
+        fh = tempfile.NamedTemporaryFile(delete=False)
+        fh.write(bytes("test;test2" + os.linesep, 'UTF-8'))
+        fh.close()
+        filename = os.path.abspath(fh.name)
         with open(filename, "rb") as f:
             resp = web.StreamResponse()
             resp.content_type, _ = mimetypes.guess_type(filename)
@@ -20,6 +24,8 @@ class sendfile():
             resp.headers['CONTENT-DISPOSITION'] = disposition
 
             data = f.read()
+            f.close()
+            os.remove(fh.name)
             resp.content_length = len(data)
             await resp.prepare(request)
 
